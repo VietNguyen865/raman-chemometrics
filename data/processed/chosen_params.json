@@ -1,0 +1,5 @@
+{
+  "airpls_lam": 10000.0,
+  "smooth_window": 5,
+  "prominence_k": 4.0
+}
