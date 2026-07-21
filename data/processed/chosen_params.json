@@ -1,5 +1,7 @@
 {
   "airpls_lam": 10000.0,
   "smooth_window": 5,
-  "prominence_k": 4.0
+  "prominence_k": 4.0,
+  "peak_distance": 1,
+  "peak_width": 0.5
 }
