@@ -176,6 +176,46 @@ def _als(spectrum, lam, p, niter):
     return spectrum - z
 
 
+def normalize_spectrum(spectrum, method='l2'):
+    """
+    Loại bỏ chênh lệch scale cường độ giữa các lần đo (laser power/thời
+    gian tích phân khác nhau) -- áp dụng SAU baseline_correction(), TRƯỚC
+    khi đưa vào augmentation/PCA/model.
+
+    method:
+        'l2'  : chia cho norm-2 của toàn phổ (khuyến nghị mặc định)
+        'max' : chia cho giá trị cực đại
+        'area': chia cho tổng cường độ (diện tích)
+
+    ⚠️ method='area' trên phổ ĐÃ baseline_correction() có thể chia cho số
+    gần 0 hoặc ÂM: sau khi trừ baseline, phổ dao động quanh 0 ở vùng nền,
+    và với mẫu SNR thấp (vd E5_a, EM8_c -- xem snr_report.csv) phần âm của
+    nhiễu nền có thể lớn hơn phần dương của đỉnh, khiến spectrum.sum() gần
+    0/âm. Khi đó phổ bị lật dấu hoặc phóng đại bất thường mà KHÔNG có
+    exception nào -- lỗi âm thầm. Hàm này cảnh báo rõ khi rơi vào trường
+    hợp đó, tương tự cách calc_snr() đã cảnh báo cho I_BG<=0.
+    """
+    spectrum = np.asarray(spectrum, dtype=float).ravel()
+    if method == 'l2':
+        denom = np.linalg.norm(spectrum)
+    elif method == 'max':
+        denom = spectrum.max()
+    elif method == 'area':
+        denom = spectrum.sum()
+        if denom <= 1e-6:
+            import warnings
+            warnings.warn(
+                f"normalize_spectrum(method='area'): tổng cường độ gần 0 hoặc "
+                f"âm (denom={denom:.4g}) -- kết quả chuẩn hoá có thể bị lật dấu/"
+                f"phóng đại bất thường. Cân nhắc dùng method='l2' hoặc 'max' "
+                f"thay thế, đặc biệt với mẫu SNR thấp.",
+                RuntimeWarning,
+            )
+    else:
+        raise ValueError(f"Unknown method: {method}")
+    return spectrum / (denom + 1e-9)
+
+
 # ---------------------------------------------------------------------------
 # 3. Smoothing
 # ---------------------------------------------------------------------------
